@@ -1,7 +1,7 @@
 #####PART 2
 #Q1- EDA: Getting a feel
 library(tidyverse)
-movie = read.csv("movie.csv")
+movie = read.csv("movie.csv", fileEncoding = "UTF-8")
 
 view(movie)
 dim(movie)
@@ -53,7 +53,7 @@ genre.sparse.mat<- as.matrix(genre.sparse.mat)
 mat.score<- genre.sparse.mat*movie$imdb_score
 apply(ifelse(mat.score==0, NA, mat.score), 2, median, na.rm=TRUE)
 
-genre_score<- data.frame(genre=colnames(mat.score), 
+genre_score<- data.frame(genre=colnames(mat.score),
                          avg_imdb_score=apply(ifelse(mat.score==0, NA, mat.score), 2, median, na.rm=TRUE))
 
 ggplot(genre_score, aes(x=genre, y=avg_imdb_score))+
@@ -90,7 +90,7 @@ movie_title.sparse.mat<- as.matrix(movie_title.sparse.mat)
 movie_mat.score<- movie_title.sparse.mat*movie$imdb_score
 apply(ifelse(movie_mat.score==0, NA, movie_mat.score), 2, median, na.rm=TRUE)
 
-title_score<- data.frame(title=colnames(movie_mat.score), 
+title_score<- data.frame(title=colnames(movie_mat.score),
                          avg_imdb_score=apply(ifelse(movie_mat.score==0, NA, movie_mat.score), 2, median, na.rm=TRUE))
 
 ggplot(title_score, aes(x=title, y=avg_imdb_score))+
@@ -104,11 +104,11 @@ tab.title<- table(title_score$title, title_score$avg_imdb_score)
 chisq.test(tab.title)
 
 
-##3 
+##3
 
 training<- movie[1:400,]
 testing<- movie[-c(1:400),]
-lm.fit1<- lm(imdb_score~gross + budget + movie_facebook_likes, 
+lm.fit1<- lm(imdb_score~gross + budget + movie_facebook_likes,
              cast_total_facebook_likes, data = training)
 
 pred.test<- predict(lm.fit1, newdata = testing)
