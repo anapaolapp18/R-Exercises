@@ -1,6 +1,6 @@
 #load the data
 library(tidyverse)
-suicide.dat<- read_csv("master.csv")
+suicide.dat<- read_csv("./exercises/homeworks/2019-12-07/master.csv")
 suicide.dat
 
 #preliminary EDA
@@ -20,6 +20,47 @@ suicide_backup <- suicide
 suicide = suicide_backup
 mean_HDI <- mean(suicide.dat$HDI, na.rm = T)
 suicide.dat[is.na(suicide.dat$HDI),"HDI"] = mean_HDI
+
+# BEGIN OF PARSING COLUMN: "age"
+
+suicide.dat = suicide.dat %>%
+  mutate(
+    age_from = as.integer(case_when(
+      str_detect(age, '([0-9]+)\\-([0-9]+) years') ~ gsub('([0-9]+)\\-([0-9]+) years', '\\1', age),
+      str_detect(age, '([0-9]+)\\+ years') ~ gsub('([0-9]+)\\+ years', '\\1', age),
+    )),
+    age_to = as.integer(case_when(
+      str_detect(age, '([0-9]+)\\-([0-9]+) years') ~ gsub('([0-9]+)\\-([0-9]+) years', '\\2', age),
+      str_detect(age, '([0-9]+)\\+ years') ~ gsub('([0-9]+)\\+ years', '100', age),
+    ))
+  ) %>%
+  select(-age)
+
+# END OF PARSING COLUMN: "age"
+
+# BEGIN EDA DataExplorer
+
+# install.packages('DataExplorer')
+library(DataExplorer)
+
+# Documentation (you have available there many other EDA tools)
+# https://cran.r-project.org/web/packages/DataExplorer/vignettes/dataexplorer-intro.html
+
+# for now let's do only: Correlation Analysis
+
+plot_correlation(suicide.dat, type = "c")
+
+# END EDA DataExplorer
+
+suicide.dat = suicide.dat %>% mutate(
+  age_range = paste(age_from, age_to, sep=" - ")
+)
+
+test_table = suicide.dat %>% select(population, age_range)
+test_table$generation = as.factor(test_table$generation)
+test_table$age_range = as.factor(test_table$age_range)
+chi2 = chisq.test(table(test_table), correct = F)
+chi2
 
 
 #EDA
@@ -87,7 +128,7 @@ tab.age <- table(suicide.dat$age, suicide.dat$suicide_rate, dnn = c("AGE", "SUIC
 age_cst=chisq.test(tab.age)
 view(tab.age)
 
-## Generation 
+## Generation
 
 ggplot(suicide.dat, aes(x=generation, y=suicide_rate))+
   stat_summary(fun.y = "mean", geom="bar", fill="blue", na.rm = T)+
@@ -109,11 +150,11 @@ HDI_cst=chisq.test(tab.HDI)
 
 ## Correlation between generation and age
 
-####Training and Testing 
-##Model 1 
+####Training and Testing
+##Model 1
 index <- sample(nrow(suicide.dat),nrow(suicide.dat)*0.90)
-suicide.train <- suicide.dat[index,] 
-suicide.test <- suicide.dat[-index,] 
+suicide.train <- suicide.dat[index,]
+suicide.test <- suicide.dat[-index,]
 
 lm.fit1= lm(log(suicide_rate)~generation+ age + sex ,data=suicide.train)
 summary(lm.fit1)
@@ -142,11 +183,11 @@ plot(lm.fit1)
 #Part 2
 nullmodel<- lm(suicide_rate~1 , data=suicide.train)
 fullmodel<- lm(suicide_rate~. , data=suicide.train)
-lm.fit2<- step(nullmodel, scope = list(lower=nullmodel, upper=fullmodel), direction = "both") 
+lm.fit2<- step(nullmodel, scope = list(lower=nullmodel, upper=fullmodel), direction = "both")
 summary(lm.fit2)
 
 pred.model2<- predict(lm.fit2, newdata = suicide.test)
-mspe2<- mean((suicide.test$suicide_rate-pred.model2)^2) 
+mspe2<- mean((suicide.test$suicide_rate-pred.model2)^2)
 
 sum.fit2=summary(lm.fit2)
 RS=sum.fit2$r.squared
